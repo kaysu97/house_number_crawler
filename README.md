@@ -155,7 +155,7 @@ house_number_crawler/
 在專案根目錄執行：
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 此指令會啟動：
@@ -284,17 +284,17 @@ curl -X POST http://localhost:8000/query \
 
 ```bash
 # 啟動所有服務
-docker-compose up -d --build
+docker compose up -d --build
 
 # 查看日誌
-docker-compose logs -f crawler
-docker-compose logs -f api
+docker compose logs -f crawler
+docker compose logs -f api
 
 # 停止服務
-docker-compose down
+docker compose down
 
 # 停止並刪除資料庫 volume
-docker-compose down -v
+docker compose down -v
 ```
 ### 服務依賴關係
 

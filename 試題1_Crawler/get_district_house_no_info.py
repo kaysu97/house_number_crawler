@@ -129,10 +129,6 @@ def run_crawler_job():
     3. 呼叫 `_validate_csv_step()` 檢查檔案產出是否完整。
     4. 呼叫 `_write_db_step()` 將資料同步至資料庫。
     5. 發生異常時進行錯誤記錄，並確保資源被正確釋放。
-    
-    設計理念 (SRP):
-    將爬蟲 (Crawler)、檔案驗證 (File I/O)、資料庫寫入 (DB) 完全解耦，
-    主程式僅負責「流程調度 (Orchestration)」，大幅提高程式的可測試性與維護性。
     """
     logger.info("Starting crawler job workflow...")
     

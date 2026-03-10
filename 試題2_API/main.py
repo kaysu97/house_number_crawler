@@ -4,7 +4,7 @@
 """
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from db import APIDBManager
+from api_db import APIDBManager
 from common.logger import setup_logger
 
 

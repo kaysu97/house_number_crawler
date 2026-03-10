@@ -30,7 +30,7 @@ house_number_crawler/
 │           └── {行政區}.csv
 ├── 試題2_API/                   # 試題 2：查詢 API
 │   ├── main.py                 # FastAPI 查詢端點
-│   ├── db.py                   # API 專用資料庫連線與查詢管理
+│   ├── api_db.py               # API 專用資料庫連線與查詢管理
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── 試題3_LogMonitor/            # 試題 3：Log 收集與異常通報
@@ -76,7 +76,7 @@ house_number_crawler/
    - 寫入前先執行 `DELETE FROM household_records WHERE ... AND execution_date = ...`，確保同一日期的資料重複執行時會先清除舊資料再寫入，避免重複。
 4. **避免 OOM**：使用 `csv.DictReader` 逐行讀取（Generator），搭配 `batch_size=1000` 分批 INSERT，避免一次載入大檔導致記憶體不足。
 5. **DB 連線池**：`common/db.py` 透過 `BaseDBManager` 封裝連線邏輯，設定 `pool_size=10`、`max_overflow=20`、`pool_timeout=30`、`pool_pre_ping=True`，控制連線數量並在使用前偵測斷線，並提供統一的 Context Manager (`transaction()`, `connection()`) 管理交易狀態。
-6. **單一職責原則 (SRP)**：將爬蟲、檔案 I/O、資料庫寫入解耦，主程式僅負責流程調度。資料庫操作進一步分離出 `BaseDBManager`，由爬蟲與 API 各自繼承實作專屬的管理類別，提高系統擴充性與維護性。
+6. **單一職責原則**：將爬蟲、檔案 I/O、資料庫寫入解耦，主程式僅負責流程調度。資料庫操作進一步分離出 `BaseDBManager`，由爬蟲與 API 各自繼承實作專屬的管理類別，提高系統擴充性與維護性。
 7. **異常處理**：請求失敗、驗證碼辨識失敗、網站結構變更時，記錄 `[ERROR]` 供 Log 監控觸發告警。
 8. **技術選型**：選擇 **Selenium** 而非 Requests/Scrapy，因目標網站含 CAPTCHA 與動態渲染，需模擬真實使用者操作。
 
@@ -114,7 +114,7 @@ house_number_crawler/
 
 #### 解題邏輯與設計理念
 
-1. **開源方案**：採用 **Loki + Promtail + Grafana** 組合。
+1. **開源方案**：採用 Loki + Promtail + Grafana 組合。
 2. **Log 收集**：Promtail 透過 Docker Socket 收集 `crawler`、`api` 等容器的 stdout/stderr，推送至 Loki。
 3. **異常通報**：Grafana Alert Rules 監控特定 Log 關鍵字，觸發時透過 Contact Point（Email）發送通知。
 4. **預設通知**：使用 MailHog 模擬 SMTP，可在 `.env` 填入真實 SMTP 以寄送實際信件。

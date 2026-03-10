@@ -1,0 +1,94 @@
+# ==============================================================================
+# Grafana 告警規則 (Alerting Rules) Provisioning 設定
+#
+# 角色：定義 Grafana 的警報規則，當特定的 Log 或 Metrics 達到觸發條件時，
+#       發送告警給指定的 Contact Point (如 email)。
+# ==============================================================================
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Application Alerts
+    folder: "Backend Alerts"
+    interval: 1m  # 每 1 分鐘評估一次規則
+    rules:
+      # ------------------------------------------------------------------------
+      # 告警規則 1：API 查詢結果為空
+      # 說明：透過 Loki 查詢 API 容器的 Log，若發現有印出 ALERT_EMPTY_RESULT，則觸發告警。
+      # ------------------------------------------------------------------------
+      - uid: api-empty-result-alert
+        title: "[警告通知] API 查詢結果為空"
+        condition: A
+        data:
+          - refId: A
+            queryType: range
+            relativeTimeRange:
+              from: 300  # 查詢過去 300 秒 (5 分鐘) 的資料
+              to: 0
+            datasourceUid: loki
+            model:
+              # LogQL: 統計過去 5 分鐘內 API container 中出現 "ALERT_EMPTY_RESULT" 的次數
+              expr: 'count_over_time({container="api"} |= "ALERT_EMPTY_RESULT" [5m])'
+              refId: A
+        noDataState: OK       # 如果沒有資料，視為正常
+        execErrState: Error   # 執行錯誤時，視為 Error
+        for: 0s               # 0s 代表條件一滿足就立即觸發告警，不須等待
+        annotations:
+          summary: "API 查詢結果為空"
+          description: "在過去 5 分鐘內，API 發生了查詢不到資料的情況，請檢查 Log 獲取詳細資訊。"
+        labels:
+          severity: warning
+
+      # ------------------------------------------------------------------------
+      # 告警規則 2：爬蟲執行失敗
+      # 說明：透過 Loki 查詢 Crawler 容器的 Log，若發現有印出 [ERROR]，則觸發告警。
+      # ------------------------------------------------------------------------
+      - uid: crawler-error-alert
+        title: "[異常通知] 爬蟲服務發生錯誤"
+        condition: A
+        data:
+          - refId: A
+            queryType: range
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              # LogQL: 統計過去 5 分鐘內 crawler container 中出現 "[ERROR]" 的次數
+              expr: 'count_over_time({container="crawler"} |= "[ERROR]" [5m])'
+              refId: A
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "爬蟲執行失敗"
+          description: "在過去 5 分鐘內，爬蟲服務發生了錯誤或重試失敗，請檢查 Log 獲取詳細資訊。"
+        labels:
+          severity: critical
+
+      # ------------------------------------------------------------------------
+      # 告警規則 3：API 發生錯誤
+      # 說明：透過 Loki 查詢 API 容器的 Log，若發現有印出 ALERT_API_ERROR，則觸發告警。
+      # ------------------------------------------------------------------------
+      - uid: api-error-alert
+        title: "[異常通知] API 服務發生錯誤"
+        condition: A
+        data:
+          - refId: A
+            queryType: range
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              # LogQL: 統計過去 5 分鐘內 api container 中出現 "ALERT_API_ERROR" 的次數
+              expr: 'count_over_time({container="api"} |= "ALERT_API_ERROR" [5m])'
+              refId: A
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "API 發生非預期錯誤"
+          description: "在過去 5 分鐘內，API 服務發生了內部錯誤 (如資料庫連線失敗)，請檢查 Log 獲取詳細資訊。"
+        labels:
+          severity: critical

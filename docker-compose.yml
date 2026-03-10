@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Database Container (PostgreSQL)
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API Container (FastAPI)
+  api:
+    build:
+      context: .
+      dockerfile: ./試題2_API/Dockerfile
+    container_name: api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - net
+    volumes:
+      - ./試題2_API:/app  # 將本地端的 API 程式掛載到 container 中
+      - ./common:/app/common  # 將共用模組掛載進去
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Crawler Container (Python + Selenium + APScheduler)
+  crawler:
+    image: crawler:v1
+    build:
+      context: .
+      dockerfile: ./試題1_Crawler/Dockerfile
+    container_name: crawler
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - net
+    volumes:
+      - ./試題1_Crawler:/app  # 將本地端的爬蟲程式掛載到 container 中，方便開發測試
+      - ./common:/app/common  # 將共用模組也掛載進去
+      - ./試題1_Crawler/data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Log & Monitoring - Loki
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./試題3_LogMonitor/loki/local-config.yaml:/etc/loki/local-config.yaml
+    networks:
+      - net
+
+  # Log & Monitoring - Promtail
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./試題3_LogMonitor/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - net
+
+  # Log & Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    environment:
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=mailhog:1025
+      - GF_SMTP_FROM_ADDRESS=grafana@email.local
+      - GF_SMTP_SKIP_VERIFY=true
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./試題3_LogMonitor/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./試題3_LogMonitor/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+      - ./試題3_LogMonitor/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - loki
+      - mailhog
+    networks:
+      - net
+
+  # Log & Monitoring - MailHog
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+  postgres_data:

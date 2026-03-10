@@ -1,0 +1,56 @@
+# ==============================================================================
+# Loki 設定檔 (Log 儲存與查詢引擎)
+#
+# 角色：接收來自 Promtail 的 Log，建立索引並儲存在磁碟中。
+#       提供 LogQL 查詢介面給 Grafana 進行資料可視化與告警評估。
+# ==============================================================================
+auth_enabled: false  # 停用多租戶認證 (Multi-tenancy)，所有資料寫入預設租戶
+
+server:
+  http_listen_port: 3100  # Loki 的 HTTP API Port，Grafana 會連這個 port 撈資料
+  http_server_read_timeout: 3m
+  http_server_write_timeout: 3m
+  grpc_server_max_recv_msg_size: 104857600
+  grpc_server_max_send_msg_size: 104857600
+
+# ------------------------------------------------------------------------------
+# 共同設定 (Common Config)
+# 說明：統一管理儲存路徑與副本數
+# ------------------------------------------------------------------------------
+common:
+  path_prefix: /loki   # Loki 運作時的基礎目錄
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks  # 儲存 Log 實際內容 (Chunks) 的目錄
+      rules_directory: /loki/rules    # 儲存 Ruler 規則的目錄
+  replication_factor: 1                   # 單機模式，副本數設為 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory                     # 內部狀態儲存使用記憶體 (單機模式適用)
+
+# ------------------------------------------------------------------------------
+# 儲存結構 (Schema Config)
+# 說明：定義 Loki 儲存 Log 的格式與索引方式
+# ------------------------------------------------------------------------------
+schema_config:
+  configs:
+    - from: "2020-10-24"
+      store: boltdb-shipper  # 索引儲存格式
+      object_store: filesystem # Chunks 儲存方式 (本機檔案系統)
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h          # 每天切分一個新的索引檔
+
+limits_config:
+  allow_structured_metadata: false
+  query_timeout: 3m
+  max_query_length: 730h
+  max_query_series: 1000
+  max_query_parallelism: 2
+  max_cache_freshness_per_query: 10m
+  split_queries_by_interval: 15m
+
+ruler:
+  alertmanager_url: http://localhost:9093 # 若有使用 Alertmanager 的對接網址

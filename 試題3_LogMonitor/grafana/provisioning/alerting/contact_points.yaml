@@ -1,0 +1,32 @@
+# ==============================================================================
+# Grafana 告警聯絡點 (Contact Points) Provisioning 設定
+#
+# 角色：定義當告警被觸發時，通知應該發送到哪個地方 (如 Email, Slack, Webhook)。
+# ==============================================================================
+apiVersion: 1
+
+contactPoints:
+  # ----------------------------------------------------------------------------
+  # 設定一組名為 "email-admin" 的聯絡點
+  # ----------------------------------------------------------------------------
+  - orgId: 1
+    name: email-admin
+    receivers:
+      - uid: email-admin-uid
+        type: email  # 指定使用 Email 發送
+        settings:
+          addresses: admin@example.local  # 接收者的 Email 地址
+          singleEmail: true                        # 將多個告警打包成一封信發送 (避免信件轟炸)
+
+# ==============================================================================
+# 通知策略 (Notification Policies)
+#
+# 角色：負責將觸發的 Alert Rules 路由 (Route) 給特定的 Contact Point。
+# ==============================================================================
+policies:
+  - orgId: 1
+    receiver: email-admin         # 預設將所有告警發送給 "email-admin" 聯絡點
+    group_by: ['alertname']       # 將相同名稱的告警群組在一起
+    group_wait: 10s               # 等待 10 秒看是否還有其他同群組的告警，再一起發送
+    group_interval: 1m            # 同一群組的新告警，每隔 1 分鐘才發送一次
+    repeat_interval: 1h           # 相同且未解除的告警，每隔 1 小時重複發送一次

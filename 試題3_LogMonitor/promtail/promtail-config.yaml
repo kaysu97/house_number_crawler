@@ -1,0 +1,47 @@
+# ==============================================================================
+# Promtail 設定檔 (Log 收集代理程式)
+#
+# 角色：負責到各個來源 (如 Docker socket, 實體檔案) 去抓取 Log，
+#       並附加 Labels 後，推送給後端的 Loki。
+# ==============================================================================
+server:
+  http_listen_port: 9080  # Promtail 自己的 metrics/API port
+  grpc_listen_port: 0     # 停用 gRPC
+
+positions:
+  # 記錄 Promtail 上次讀取到的檔案位置，避免重啟後重複讀取
+  filename: /tmp/positions.yaml
+
+clients:
+  # 將收集到的 Log 推送至 Loki 的網址與 API endpoint
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+# ------------------------------------------------------------------------------
+# Job: docker
+# 說明：透過讀取 Docker Daemon Socket，自動抓取所有 Docker 容器的標準輸出 (stdout/stderr)
+# ------------------------------------------------------------------------------
+- job_name: docker
+  docker_sd_configs:
+    - host: unix:///var/run/docker.sock
+      refresh_interval: 5s  # 每 5 秒掃描一次是否有新容器
+  
+  # Relabeling (重新標籤)：
+  # 將 Docker 自帶的 meta 標籤轉換為我們在 Loki/Grafana 中容易查詢的自訂 Labels。
+  relabel_configs:
+    # 擷取容器名稱 (移除前面的斜線 '/')，並儲存為 label: `container`
+    - source_labels: ['__meta_docker_container_name']
+      regex: '/(.*)'
+      target_label: 'container'
+      
+    # 擷取串流來源 (stdout 或 stderr)，儲存為 label: `stream`
+    - source_labels: ['__meta_docker_container_log_stream']
+      target_label: 'stream'
+
+  # Pipeline stages：從 log 內容擷取 log level 作為 label
+  # Log 格式範例: 2025-03-07 12:00:00,123 [INFO] CrawlerJob.xxx: message
+  pipeline_stages:
+    - regex:
+        expression: '\[(?P<level>[A-Z]+)\]'
+    - labels:
+        level:

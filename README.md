@@ -324,7 +324,7 @@ loki + mailhog
 | 2. 示範 CSV 檔案 | `試題1_Crawler/data/raw/` 下各日期目錄 |
 | 3. 示範 API 執行結果 | 見「API 查詢」章節 curl 範例 |
 | 4. LOG 顯示與通報紀錄 | Grafana Explore + Alert Rules + MailHog |
-| 5. 系統架構圖 | 見上方 Mermaid 圖 |
+| 5. 系統架構圖 | 見上方架構圖 |
 | 6. 排程設計方案（加分題） | `試題1_Crawler/scheduler.py` + `CRAWLER_CRON` 環境變數 |
 
 ---

@@ -1,7 +1,8 @@
 **/data/raw/*
 **/__pycache__/
 *.pyc
-.env
+# 正式環境不可上傳 .env 檔案
+# .env
 *.pdf
 **/html/*
 # Keep the directories but ignore content

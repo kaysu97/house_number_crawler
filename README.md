@@ -34,16 +34,16 @@ house_number_crawler/
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── 試題3_LogMonitor/            # 試題 3：Log 收集與異常通報
-│   ├── loki/
-│   │   └── local-config.yaml   # Loki 設定
-│   ├── promtail/
-│   │   └── promtail-config.yaml # Promtail 日誌收集設定
-│   └── grafana/
-│       └── provisioning/
-│           ├── datasources/     # Loki 資料來源
-│           ├── alerting/       # 告警規則與聯絡點
-│           └── dashboards/      # 儀表板
-└── html/                        # 輔助檔案（頁面結構分析用）
+    ├── loki/
+    │   └── local-config.yaml   # Loki 設定
+    ├── promtail/
+    │   └── promtail-config.yaml # Promtail 日誌收集設定
+    └── grafana/
+        └── provisioning/
+            ├── datasources/     # Loki 資料來源
+            ├── alerting/       # 告警規則與聯絡點
+            └── dashboards/      # 儀表板
+
 ```
 
 ---
@@ -122,8 +122,6 @@ house_number_crawler/
 ---
 
 ### 試題 4：系統架構圖
-
-系統架構圖已繪製於下方「Docker Compose 與整體架構」章節。
 <img src="images/architecture.png" width="500">
 
 ---
